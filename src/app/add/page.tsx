@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import ReCAPTCHA from 'react-google-recaptcha';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import FaceDetector from '@/components/FaceDetector';
@@ -12,12 +13,14 @@ type Step = 'upload' | 'name' | 'confirm' | 'success';
 
 export default function AddTiptonePage() {
   const router = useRouter();
+  const recaptchaRef = useRef<ReCAPTCHA>(null);
   const [step, setStep] = useState<Step>('upload');
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [nameError, setNameError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [createdTiptoneId, setCreatedTiptoneId] = useState<string | null>(null);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   const handleColorDetected = (hex: string) => {
     setSelectedColor(hex);
@@ -52,8 +55,17 @@ export default function AddTiptonePage() {
     setStep('confirm');
   };
 
+  const handleCaptchaChange = (token: string | null) => {
+    setCaptchaToken(token);
+  };
+
   const handleSubmit = async () => {
     if (!selectedColor || !name) return;
+
+    if (!captchaToken) {
+      alert('Please complete the CAPTCHA verification');
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -63,6 +75,7 @@ export default function AddTiptonePage() {
         body: JSON.stringify({
           name: name.trim(),
           hex: selectedColor,
+          captchaToken,
         }),
       });
 
@@ -71,12 +84,20 @@ export default function AddTiptonePage() {
       if (data.success && data.tiptone) {
         setCreatedTiptoneId(data.tiptone.id);
         setStep('success');
+        // Reset captcha for next submission
+        recaptchaRef.current?.reset();
+        setCaptchaToken(null);
       } else {
         alert(data.error || 'Failed to submit Tiptone');
+        // Reset captcha on error
+        recaptchaRef.current?.reset();
+        setCaptchaToken(null);
       }
     } catch (error) {
       console.error('Error submitting:', error);
       alert('An error occurred. Please try again.');
+      recaptchaRef.current?.reset();
+      setCaptchaToken(null);
     } finally {
       setSubmitting(false);
     }
@@ -247,6 +268,15 @@ export default function AddTiptonePage() {
 
               <hr />
 
+              <div style={{ marginBottom: '16px' }}>
+                <ReCAPTCHA
+                  ref={recaptchaRef}
+                  sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ''}
+                  onChange={handleCaptchaChange}
+                  theme="dark"
+                />
+              </div>
+
               <div className="flex gap-2">
                 <button onClick={() => setStep('name')} className="btn">
                   Back
@@ -254,7 +284,7 @@ export default function AddTiptonePage() {
                 <button
                   onClick={handleSubmit}
                   className="btn btn-primary"
-                  disabled={submitting}
+                  disabled={submitting || !captchaToken}
                 >
                   {submitting ? 'Submitting...' : 'Submit Tiptone'}
                 </button>

@@ -2,6 +2,31 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createTiptone, isSupabaseConfigured } from '@/lib/supabase';
 import { validateTiptoneName, formatTiptoneName } from '@/lib/validation';
 
+async function verifyCaptcha(token: string): Promise<boolean> {
+  const secretKey = process.env.RECAPTCHA_SECRET_KEY;
+
+  if (!secretKey) {
+    console.error('RECAPTCHA_SECRET_KEY not configured');
+    return false;
+  }
+
+  try {
+    const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: `secret=${secretKey}&response=${token}`,
+    });
+
+    const data = await response.json();
+    return data.success === true;
+  } catch (error) {
+    console.error('Error verifying captcha:', error);
+    return false;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Check if Supabase is configured
@@ -12,9 +37,19 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, hex } = body;
+    const { name, hex, captchaToken } = body;
 
     console.log('Received submission:', { name, hex });
+
+    // Verify CAPTCHA
+    if (!captchaToken) {
+      return NextResponse.json({ error: 'CAPTCHA verification required' }, { status: 400 });
+    }
+
+    const captchaValid = await verifyCaptcha(captchaToken);
+    if (!captchaValid) {
+      return NextResponse.json({ error: 'CAPTCHA verification failed. Please try again.' }, { status: 400 });
+    }
 
     // Validate name
     const validation = validateTiptoneName(name);
