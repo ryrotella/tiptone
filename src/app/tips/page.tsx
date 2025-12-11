@@ -5,14 +5,7 @@ import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import TiptoneCard from '@/components/TiptoneCard';
-
-interface Tiptone {
-  id: string;
-  name: string;
-  hex: string;
-  code: string;
-  created_at: string;
-}
+import { Tiptone } from '@/types/tiptone';
 
 export default function TipsPage() {
   const [tiptones, setTiptones] = useState<Tiptone[]>([]);
@@ -47,7 +40,7 @@ export default function TipsPage() {
         tiptones.filter(
           (t) =>
             t.name.toLowerCase().includes(query) ||
-            t.code.toLowerCase().includes(query) ||
+            t.catalog_number.toLowerCase().includes(query) ||
             t.hex.toLowerCase().includes(query)
         )
       );
