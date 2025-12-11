@@ -1,31 +1,42 @@
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function Header() {
   return (
     <header
       style={{
-        background: 'linear-gradient(to bottom, #e8e8e8 0%, #d0d0d0 100%)',
-        borderBottom: '2px solid #a0a0a0',
-        padding: '8px 10px',
+        background: '#ffffff',
+        padding: '15px 20px',
       }}
     >
       <div className="container flex justify-between items-center">
-        <Link
-          href="/"
-          style={{
-            textDecoration: 'none',
-            color: '#000',
-            fontWeight: 'bold',
-            fontSize: '18px',
-            letterSpacing: '2px',
-          }}
-        >
-          TIPTONE
+        <Link href="/">
+          <Image
+            src="/TIPTONE.png"
+            alt="TIPTONE"
+            width={180}
+            height={40}
+            style={{ height: 'auto' }}
+            priority
+          />
         </Link>
-        <nav className="flex gap-3" style={{ fontSize: '12px' }}>
-          <Link href="/">Home</Link>
-          <Link href="/add">Add a Tiptone</Link>
-          <Link href="/#about">About</Link>
+        <nav className="flex gap-4 items-center" style={{ fontSize: '24px' }}>
+          <Link href="/" style={{ color: '#000000', textDecoration: 'none' }}>HOME</Link>
+          <Link href="/tips" style={{ color: '#000000', textDecoration: 'none' }}>TIPS</Link>
+          <Link href="/about" style={{ color: '#000000', textDecoration: 'none' }}>ABOUT</Link>
+          <Link
+            href="/donate"
+            style={{
+              color: '#ffffffff',
+              backgroundColor: '#000000',
+              textDecoration: 'none',
+              border: '1px solid #000000',
+              padding: '6px 16px',
+              fontSize: '24px',
+            }}
+          >
+            DONATE
+          </Link>
         </nav>
       </div>
     </header>

@@ -13,12 +13,12 @@ export default function TiptoneCard({ tiptone, compact = false }: TiptoneCardPro
     return (
       <Link
         href={`/tiptone/${tiptone.id}`}
-        className="panel block no-underline"
-        style={{ textDecoration: 'none', color: 'inherit' }}
+        className="tiptone-card"
+        style={{ textDecoration: 'none' }}
       >
-        <div className="flex gap-2">
+        <div className="flex gap-2" style={{ padding: '8px' }}>
           <div
-            className="color-swatch"
+            className="swatch"
             style={{
               backgroundColor: tiptone.hex,
               width: '40px',
@@ -27,13 +27,13 @@ export default function TiptoneCard({ tiptone, compact = false }: TiptoneCardPro
             }}
           />
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontWeight: 'bold', fontSize: '11px' }}>
+            <div className="name" style={{ fontSize: '11px' }}>
               {tiptone.name}
             </div>
-            <div style={{ fontSize: '10px', color: '#666' }}>
+            <div className="code">
               {tiptone.catalog_number}
             </div>
-            <div style={{ fontSize: '10px', color: '#888' }}>
+            <div className="hex">
               {tiptone.hex}
             </div>
           </div>
@@ -45,29 +45,24 @@ export default function TiptoneCard({ tiptone, compact = false }: TiptoneCardPro
   return (
     <Link
       href={`/tiptone/${tiptone.id}`}
-      className="panel block"
-      style={{ textDecoration: 'none', color: 'inherit' }}
+      className="tiptone-card"
+      style={{ textDecoration: 'none' }}
     >
       <div
-        className="color-swatch"
+        className="swatch"
         style={{
           backgroundColor: tiptone.hex,
           width: '100%',
-          height: '80px',
+          aspectRatio: '1',
         }}
       />
-      <div style={{ padding: '8px' }}>
-        <div style={{ fontWeight: 'bold', fontSize: '13px' }}>
+      <div className="info">
+        <div className="name">
           {tiptone.name}
         </div>
-        <div style={{ fontSize: '11px', color: '#666' }}>
-          {tiptone.catalog_number}
-        </div>
-        <div style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>
-          {tiptone.hex}
-        </div>
-        <div style={{ fontSize: '10px', color: '#999', marginTop: '2px' }}>
-          Views: {tiptone.view_count}
+        <div className="code" style={{ display: 'flex', justifyContent: 'space-between' }}>
+          <span>TIPTONE: {tiptone.catalog_number}</span>
+          <span>{tiptone.hex}</span>
         </div>
       </div>
     </Link>

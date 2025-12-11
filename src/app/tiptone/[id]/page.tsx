@@ -55,14 +55,27 @@ export default async function TiptonePage({ params }: TiptonePageProps) {
             {/* Name and catalog number */}
             <div style={{ marginBottom: '15px' }}>
               <h1 style={{ fontSize: '28px', marginBottom: '5px', letterSpacing: '1px' }}>
-                {tiptone.name}
+                {tiptone.name} {tiptone.catalog_number}
               </h1>
               <div style={{ fontSize: '18px', color: '#666', fontWeight: 'bold' }}>
-                {tiptone.catalog_number}
+                
               </div>
-              <div style={{ fontSize: '11px', color: '#999', fontStyle: 'italic' }}>
-                Spoken: &quot;{tiptone.name} {spokenNumber}&quot;
+                    {/* Metadata */}
+            <div style={{ fontSize: '11px', color: '#666' }}>
+              <div className="flex justify-between">
+                <span>Date Added:</span>
+                <span>{formattedDate}</span>
               </div>
+              <div className="flex justify-between" style={{ marginTop: '3px' }}>
+                <span>Views:</span>
+                <span>{tiptone.view_count.toLocaleString()}</span>
+              </div>
+              {tiptone.is_featured && (
+                <div style={{ marginTop: '8px', color: '#4a90d9', fontWeight: 'bold' }}>
+                  Featured Tiptone
+                </div>
+              )}
+            </div>
             </div>
 
             <hr />
@@ -105,22 +118,7 @@ export default async function TiptonePage({ params }: TiptonePageProps) {
 
             <hr />
 
-            {/* Metadata */}
-            <div style={{ fontSize: '11px', color: '#666' }}>
-              <div className="flex justify-between">
-                <span>Date Added:</span>
-                <span>{formattedDate}</span>
-              </div>
-              <div className="flex justify-between" style={{ marginTop: '3px' }}>
-                <span>Views:</span>
-                <span>{tiptone.view_count.toLocaleString()}</span>
-              </div>
-              {tiptone.is_featured && (
-                <div style={{ marginTop: '8px', color: '#4a90d9', fontWeight: 'bold' }}>
-                  Featured Tiptone
-                </div>
-              )}
-            </div>
+   
           </div>
         </div>
 

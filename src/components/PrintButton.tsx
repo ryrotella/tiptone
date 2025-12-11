@@ -7,7 +7,7 @@ export default function PrintButton() {
       className="btn"
       style={{ marginRight: '10px' }}
     >
-      Print Card
+      Print Tiptone
     </button>
   );
 }

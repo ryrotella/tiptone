@@ -3,11 +3,11 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { rgbToHex } from '@/lib/colors';
 
-// MediaPipe Face Mesh landmark index for upper lip center
-// Index 0 is the center of the upper lip (philtrum)
-const UPPER_LIP_CENTER_INDEX = 0;
-// Alternative: Index 13 is also commonly used for the upper lip
-const UPPER_LIP_INDICES = [0, 13, 14, 312, 311, 310, 415, 308, 324, 318, 402, 317, 14, 87, 178, 88, 95];
+// MediaPipe Face Mesh landmark index for bottom lip center
+// Index 17 is the center of the bottom lip
+const BOTTOM_LIP_CENTER_INDEX = 17;
+// Alternative indices for the bottom lip area
+const BOTTOM_LIP_INDICES = [17, 314, 405, 321, 375, 291, 409, 270, 269, 267, 0, 37, 39, 40, 185, 61, 146, 91, 181, 84];
 
 interface FaceDetectorProps {
   onColorDetected: (hex: string, imageData: string) => void;
@@ -16,12 +16,15 @@ interface FaceDetectorProps {
 export default function FaceDetector({ onColorDetected }: FaceDetectorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [detectedPoint, setDetectedPoint] = useState<{ x: number; y: number } | null>(null);
   const [detectedColor, setDetectedColor] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [cameraActive, setCameraActive] = useState(false);
+  const [stream, setStream] = useState<MediaStream | null>(null);
 
   // Draw image and detection point
   const drawCanvas = useCallback(() => {
@@ -178,8 +181,8 @@ export default function FaceDetector({ onColorDetected }: FaceDetectorProps) {
       // Place the detection point at a typical lip position (center-bottom of image)
       // Users can then adjust manually
 
-      // Typical face proportions: lips are around 70% down from top
-      const estimatedLipY = img.height * 0.68;
+      // Typical face proportions: bottom lip is around 72% down from top
+      const estimatedLipY = img.height * 0.72;
       const estimatedLipX = img.width * 0.5;
 
       setDetectedPoint({ x: estimatedLipX, y: estimatedLipY });
@@ -197,6 +200,105 @@ export default function FaceDetector({ onColorDetected }: FaceDetectorProps) {
       setLoading(false);
     }
   };
+
+  // Start camera
+  const startCamera = async () => {
+    try {
+      setError(null);
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: { ideal: 800 }, height: { ideal: 600 } }
+      });
+      setStream(mediaStream);
+      setCameraActive(true);
+
+      // Wait for video element to be ready
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = mediaStream;
+          videoRef.current.play();
+        }
+      }, 100);
+    } catch (err) {
+      console.error('Error accessing camera:', err);
+      setError('Could not access camera. Please check permissions or use file upload.');
+    }
+  };
+
+  // Stop camera
+  const stopCamera = () => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
+    setCameraActive(false);
+  };
+
+  // Capture photo from camera
+  const capturePhoto = () => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    setLoading(true);
+
+    // Create canvas to capture frame
+    const captureCanvas = document.createElement('canvas');
+    captureCanvas.width = video.videoWidth;
+    captureCanvas.height = video.videoHeight;
+    const ctx = captureCanvas.getContext('2d');
+
+    if (ctx) {
+      // Mirror the image horizontally for selfie view
+      ctx.translate(captureCanvas.width, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(video, 0, 0);
+
+      // Stop camera
+      stopCamera();
+
+      // Process captured image
+      const img = new Image();
+      img.onload = () => {
+        // Resize if needed
+        const maxDim = 800;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = (height / width) * maxDim;
+            width = maxDim;
+          } else {
+            width = (width / height) * maxDim;
+            height = maxDim;
+          }
+        }
+
+        const resizeCanvas = document.createElement('canvas');
+        resizeCanvas.width = width;
+        resizeCanvas.height = height;
+        const resizeCtx = resizeCanvas.getContext('2d');
+        if (resizeCtx) {
+          resizeCtx.drawImage(img, 0, 0, width, height);
+          const resizedImg = new Image();
+          resizedImg.onload = () => {
+            setImage(resizedImg);
+            detectFace(resizedImg);
+          };
+          resizedImg.src = resizeCanvas.toDataURL('image/jpeg', 0.9);
+        }
+      };
+      img.src = captureCanvas.toDataURL('image/jpeg', 0.9);
+    }
+  };
+
+  // Cleanup camera on unmount
+  useEffect(() => {
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [stream]);
 
   // Handle canvas click/drag for manual adjustment
   const handleCanvasInteraction = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -241,63 +343,146 @@ export default function FaceDetector({ onColorDetected }: FaceDetectorProps) {
 
   return (
     <div>
-      {/* File upload */}
+      {/* File upload or camera */}
       <div className="panel">
-        <div className="panel-header">Step 1: Upload an Image</div>
+        <div className="panel-header">Step 1: Take or Upload a Photo</div>
         <div className="panel-content">
+          <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '16px' }}>
+            <button
+              onClick={startCamera}
+              disabled={cameraActive}
+              style={{
+                display: 'inline-block',
+                padding: '14px 32px',
+                fontSize: '16px',
+                fontWeight: 500,
+                letterSpacing: '1px',
+                backgroundColor: cameraActive ? '#cccccc' : '#ffffff',
+                color: '#000000',
+                border: '1px solid #000000',
+                cursor: cameraActive ? 'default' : 'pointer',
+              }}
+            >
+              TAKE PHOTO
+            </button>
+            <label
+              htmlFor="file-upload"
+              style={{
+                display: 'inline-block',
+                padding: '14px 32px',
+                fontSize: '16px',
+                fontWeight: 500,
+                letterSpacing: '1px',
+                backgroundColor: '#ffffff',
+                color: '#000000',
+                border: '1px solid #000000',
+                cursor: 'pointer',
+              }}
+            >
+              CHOOSE FILE
+            </label>
+          </div>
           <input
+            id="file-upload"
             ref={fileInputRef}
             type="file"
             accept="image/*"
             onChange={handleFileChange}
-            style={{ marginBottom: '10px' }}
+            style={{ display: 'none' }}
           />
-          <p style={{ fontSize: '11px', color: '#666', marginBottom: 0 }}>
-            Upload a clear, front-facing photo. The system will attempt to detect
-            the upper lip automatically.
+          <p style={{ fontSize: '16px', color: '#666', marginBottom: 0 }}>
+            Take a selfie or upload a clear, front-facing photo. The system will
+            automatically place a marker on your bottom lip that you can adjust.
           </p>
         </div>
       </div>
 
+      {/* Camera view */}
+      {cameraActive && (
+        <div className="panel">
+          <div className="panel-header">Camera</div>
+          <div className="panel-content" style={{ textAlign: 'center' }}>
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              style={{
+                maxWidth: '100%',
+                maxHeight: '400px',
+                border: '1px solid #333',
+                transform: 'scaleX(-1)',
+              }}
+            />
+            <div style={{ marginTop: '16px', display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <button
+                onClick={capturePhoto}
+                style={{
+                  padding: '14px 40px',
+                  fontSize: '16px',
+                  fontWeight: 500,
+                  letterSpacing: '1px',
+                  backgroundColor: '#ffffff',
+                  color: '#000000',
+                  border: '1px solid #000000',
+                  cursor: 'pointer',
+                }}
+              >
+                CAPTURE
+              </button>
+              <button
+                onClick={stopCamera}
+                style={{
+                  padding: '14px 32px',
+                  fontSize: '16px',
+                  fontWeight: 500,
+                  letterSpacing: '1px',
+                  backgroundColor: 'transparent',
+                  color: '#ffffff',
+                  border: '1px solid #ffffff',
+                  cursor: 'pointer',
+                }}
+              >
+                CANCEL
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Example image */}
       <div className="panel">
         <div className="panel-header">Example: Correct Selection Area</div>
-        <div className="panel-content text-center">
-          <div
-            style={{
-              display: 'inline-block',
-              background: '#f5f5f5',
-              padding: '20px',
-              border: '1px solid #ddd',
-            }}
-          >
-            <div style={{ fontSize: '11px', marginBottom: '10px' }}>
-              Select the center of the upper lip (the tip)
-            </div>
+        <div className="panel-content" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{ fontSize: '16px', marginBottom: '10px' }}>
+            Select the center of the bottom lip
+          </div>
+          <div style={{ position: 'relative', display: 'inline-block' }}>
+            <img
+              src="/exTip.png"
+              alt="Example: Select the center of the bottom lip"
+              style={{
+                maxWidth: '100%',
+                maxHeight: '300px',
+                border: '1px solid #ddd',
+                display: 'block',
+              }}
+            />
+            {/* Red dot on bottom lip */}
             <div
               style={{
-                width: '100px',
-                height: '60px',
-                margin: '0 auto',
-                position: 'relative',
-                background: '#ddd',
+                position: 'absolute',
+                left: '48%',
+                top: '69%',
+                transform: 'translate(-50%, -50%)',
+                width: '12px',
+                height: '12px',
+                backgroundColor: '#ff0000',
                 borderRadius: '50%',
+                border: '2px solid #ffffff',
+                boxShadow: '0 0 4px rgba(0,0,0,0.5)',
               }}
-            >
-              <div
-                style={{
-                  position: 'absolute',
-                  left: '50%',
-                  top: '70%',
-                  transform: 'translate(-50%, -50%)',
-                  width: '10px',
-                  height: '10px',
-                  background: '#ff0000',
-                  borderRadius: '50%',
-                  border: '2px solid white',
-                }}
-              />
-            </div>
+            />
           </div>
         </div>
       </div>
@@ -325,9 +510,9 @@ export default function FaceDetector({ onColorDetected }: FaceDetectorProps) {
         <div className="panel">
           <div className="panel-header">Step 2: Adjust Selection</div>
           <div className="panel-content">
-            <p style={{ fontSize: '11px', color: '#666', marginBottom: '10px' }}>
+            <p style={{ fontSize: '16px', color: '#666', marginBottom: '10px' }}>
               Click or drag on the image to adjust the selection point.
-              Position it at the center of the upper lip.
+              Position it at the center of the bottom lip.
             </p>
             <div style={{ textAlign: 'center', overflow: 'auto' }}>
               <canvas
@@ -362,10 +547,10 @@ export default function FaceDetector({ onColorDetected }: FaceDetectorProps) {
                 }}
               />
               <div>
-                <p style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '5px' }}>
+                <p style={{ fontWeight: 'bold', fontSize: '20px', marginBottom: '5px' }}>
                   {detectedColor}
                 </p>
-                <p style={{ fontSize: '11px', color: '#666', marginBottom: '10px' }}>
+                <p style={{ fontSize: '16px', color: '#666', marginBottom: '10px' }}>
                   This color will be used for your Tiptone.
                 </p>
                 <button onClick={handleConfirm} className="btn btn-primary">

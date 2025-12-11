@@ -88,12 +88,12 @@ export default function AddTiptonePage() {
     <>
       <Header />
       <main className="container">
-        <h1 style={{ marginTop: '15px' }}>Add a Tiptone</h1>
+        <h1 style={{ marginTop: '15px', fontSize: '36px' }}>Add a Tiptone</h1>
 
         {/* Progress indicator */}
         <div className="panel">
           <div className="panel-content">
-            <div className="flex gap-2 justify-between" style={{ fontSize: '11px' }}>
+            <div className="flex gap-2 justify-between" style={{ fontSize: '16px' }}>
               <span style={{ fontWeight: step === 'upload' ? 'bold' : 'normal' }}>
                 1. Upload Image
               </span>
@@ -130,13 +130,13 @@ export default function AddTiptonePage() {
                   }}
                 />
                 <div>
-                  <p style={{ fontWeight: 'bold', marginBottom: '5px' }}>{selectedColor}</p>
+                  {/* <p style={{ fontWeight: 'bold', marginBottom: '5px' }}>{selectedColor}</p> */}
                   <button
                     onClick={() => setStep('upload')}
                     className="btn"
                     style={{ fontSize: '10px' }}
                   >
-                    Change Color
+                    Make a new selection
                   </button>
                 </div>
               </div>
@@ -167,15 +167,13 @@ export default function AddTiptonePage() {
                   </p>
                 )}
 
-                <div className="panel" style={{ background: '#f9f9f9', marginTop: '10px' }}>
+                <div className="panel" style={{ background: '#0f0e0eff', marginTop: '10px' }}>
                   <div className="panel-content" style={{ fontSize: '11px' }}>
                     <strong>Naming Guidelines:</strong>
                     <ul style={{ margin: '5px 0 0 0', paddingLeft: '20px' }}>
-                      <li>Use format: (Adjective) (Noun) or just (Noun)</li>
-                      <li>Example: &quot;Hard Ryan&quot;, &quot;Soft Emma&quot;, &quot;Sunset&quot;</li>
                       <li>Letters and spaces only (no numbers or symbols)</li>
-                      <li>Maximum 25 characters</li>
-                      <li>Will be displayed in ALL CAPS</li>
+                      <li>25 characters maximum</li>
+             
                     </ul>
                   </div>
                 </div>
